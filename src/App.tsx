@@ -22,41 +22,15 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { Property, FilterOptions } from './types';
 
-import { generateLogoSvg } from './services/geminiService';
+
 
 // --- Components ---
 
 const Logo = ({ className = "w-10 h-10" }: { className?: string }) => {
-  const [svg, setSvg] = useState<string | null>(null);
-
-  useEffect(() => {
-    generateLogoSvg().then(res => {
-      if (res) {
-        // Clean up response if it contains markdown blocks or extra text
-        let cleaned = res.replace(/```svg/g, '').replace(/```/g, '').trim();
-        // Ensure it starts with <svg
-        const svgStart = cleaned.indexOf('<svg');
-        if (svgStart !== -1) {
-          cleaned = cleaned.substring(svgStart);
-        }
-        setSvg(cleaned);
-      }
-    }).catch(err => console.error("Logo generation error:", err));
-  }, []);
-
-  if (!svg) {
-    return (
-      <div className={`${className} bg-brand-primary rounded-lg flex items-center justify-center text-white font-bold text-xl`}>
-        PH
-      </div>
-    );
-  }
-
   return (
-    <div 
-      className={`${className} flex items-center justify-center overflow-hidden`} 
-      dangerouslySetInnerHTML={{ __html: svg }} 
-    />
+    <div className={`${className} bg-brand-primary rounded-lg flex items-center justify-center text-white font-bold text-xl`}>
+      PH
+    </div>
   );
 };
 
