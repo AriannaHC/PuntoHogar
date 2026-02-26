@@ -21,6 +21,12 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Property, FilterOptions } from './types';
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL!,
+  import.meta.env.VITE_SUPABASE_ANON_KEY!
+);
 
 
 
@@ -211,21 +217,32 @@ export default function App() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterOptions>({});
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchProperties = async (currentFilters: FilterOptions = {}) => {
     setLoading(true);
+
     try {
-      const queryParams = new URLSearchParams();
-      if (currentFilters.type) queryParams.append('type', currentFilters.type);
-      if (currentFilters.category) queryParams.append('category', currentFilters.category);
-      if (currentFilters.search) queryParams.append('search', currentFilters.search);
-      
-      const response = await fetch(`/api/properties?${queryParams.toString()}`);
-      const data = await response.json();
-      setProperties(data);
-    } catch (error) {
-      console.error("Error fetching properties:", error);
+      let query = supabase.from("properties").select("*");
+
+      if (currentFilters.type)
+        query = query.eq("type", currentFilters.type);
+
+      if (currentFilters.category)
+        query = query.eq("category", currentFilters.category);
+
+      if (currentFilters.search)
+        query = query.ilike("title", `%${currentFilters.search}%`);
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error(error);
+      } else {
+        setProperties(data || []);
+      }
+    } catch (err) {
+      console.error("Error:", err);
     } finally {
       setLoading(false);
     }
@@ -235,24 +252,35 @@ export default function App() {
     fetchProperties();
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newFilters = { ...filters, search: searchTerm };
-    setFilters(newFilters);
-    fetchProperties(newFilters);
-    
-    // Scroll to results
-    const resultsSection = document.getElementById('propiedades');
-    if (resultsSection) {
-      resultsSection.scrollIntoView({ behavior: 'smooth' });
-    }
+  const handleFilterChange = <K extends keyof FilterOptions>(
+  key: K,
+  value: FilterOptions[K] | "all"
+) => {
+  const updatedFilters = {
+    ...filters,
+    [key]: value === "all" ? undefined : value,
   };
 
-  const handleFilterChange = (key: keyof FilterOptions, value: string) => {
-    const newFilters = { ...filters, [key]: value === 'all' ? undefined : value };
-    setFilters(newFilters);
-    fetchProperties(newFilters);
+  setFilters(updatedFilters);
+  fetchProperties(updatedFilters);
+
+  // Scroll to results
+  const resultsSection = document.getElementById("propiedades");
+  if (resultsSection) {
+    resultsSection.scrollIntoView({ behavior: "smooth" });
+  }
+};
+const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+
+  const newFilters = {
+    ...filters,
+    search: searchTerm,
   };
+
+  setFilters(newFilters);
+  fetchProperties(newFilters);
+};
 
   return (
     <div className="min-h-screen">
